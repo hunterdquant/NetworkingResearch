@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func readLines() {
 	}()
 	in := bufio.NewScanner(file)
 	ips := make(map[string]float64)
-
+	go checkTimeout(ips)
 	for in.Scan() {
 		cache(in.Text(), ips)
 	}
@@ -49,8 +50,8 @@ func cache(line string, ips map[string]float64) map[string]float64 {
 	}
 	ip24bits := byteList[0] + "." + byteList[1] + "." + byteList[2]
 	if val, ok := ips[ip24bits]; ok {
-		fmt.Println(val)
-		ips[ip24bits] += 10
+		fmt.Printf(ip24bits + " has a T/O of %g\n", val)
+		ips[ip24bits] = ips[ip24bits] + getAdditionalTime(ips[ip24bits])
 	} else if len(ips) <= 10000 {
 		fmt.Println("Caching: " + ip24bits)
 		ips[ip24bits] = .010
@@ -58,6 +59,19 @@ func cache(line string, ips map[string]float64) map[string]float64 {
 	return ips
 }
 
-func checkTimeout() {
+func checkTimeout(ips map[string]float64) {
+	for {
+		prevTime := time.Now()
+		for ip := range(ips) {
+			ips[ip] = ips[ip] - (time.Duration.Seconds(time.Since(prevTime)))
+			if ips[ip] <= 0 {
+				fmt.Println("Removing " + ip + " from the cache. ")
+				delete(ips, ip)
+			}
+		}
+	}
+}
 
+func getAdditionalTime(timeOut float64) float64 {
+	return .010-timeOut/1000
 }
